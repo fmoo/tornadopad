@@ -1,0 +1,76 @@
+<html>
+<head>
+<script src="/static/prototype.js"></script>
+<script type="text/JavaScript">
+var ws = new WebSocket("ws://localhost:8888/websocket");
+ws.onopen = function() {
+
+};
+
+ws.onmessage = function(event) {
+  var channel = $("channel");
+  var obj = JSON.parse(event.data);
+  switch(obj.action) {
+  case 'insert':
+    channel.value = channel.value.substr(0, obj.pos) +
+                    String.fromCharCode(obj.charCode) +
+                    channel.value.substr(obj.pos);
+    break;
+  case 'update':
+    channel.value = obj.body;
+    break;
+  case 'delete':
+    channel.value = channel.value.substr(0, obj.start) +
+                    channel.value.substr(obj.end);
+    break;
+  }
+};
+
+function onKeyPress(event) {
+  var channel = $("channel");
+  var msg = JSON.stringify({action: 'insert',
+                            charCode: event.charCode,
+                            pos: channel.selectionEnd});
+  ws.send(msg);
+}
+
+function onKeyDown(event) {
+  var channel = $("channel");
+  if (channel.selectionStart != channel.selectionEnd) {
+    var msg = JSON.stringify({action: 'delete',
+                              start: channel.selectionStart,
+                              end: channel.selectionEnd});
+    ws.send(msg);
+
+    // We need to call setSelectionRange AFTER doing the delete, so that the 
+    // sent insert appears in the right spot 
+    //channel.setSelectionRange(channel.selectionStart, channel.selectionStart);
+  } else {
+    if (event.keyCode == 8) {
+      var msg = JSON.stringify({action: 'delete',
+                                start: channel.selectionEnd - 1,
+                                end: channel.selectionEnd});
+      ws.send(msg);
+    } else if (event.keyCode == 46) {
+      var msg = JSON.stringify({action: 'delete',
+                                start: channel.selectionEnd,
+                                end: channel.selectionEnd + 1});
+      ws.send(msg);
+    }
+  }
+}
+
+</script>
+</head>
+<body>
+<div align="center">
+<textarea id="channel" rows="20" cols="120"></textarea>
+<br />
+
+<script type="text/JavaScript">
+$("channel").onkeypress = onKeyPress;
+$("channel").onkeydown = onKeyDown;
+</script>
+
+</body>
+</html>

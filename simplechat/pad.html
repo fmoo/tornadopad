@@ -1,0 +1,37 @@
+<html>
+<head>
+<script src="/static/prototype.js"></script>
+<script type="text/JavaScript">
+var ws = new WebSocket("ws://localhost:8888/websocket");
+ws.onopen = function() {
+
+};
+ws.onmessage = function(event) {
+  $("channel").value += "\r\n" + event.data;
+};
+
+function onKeyPress(event) {
+  if (event.keyCode == 13) {
+    var entry = $("entry");
+    ws.send(entry.value);
+    entry.value= "";
+  }
+}
+
+</script>
+</head>
+<body>
+<div align="center">
+<textarea id="channel" rows="20" cols="120"></textarea>
+<br />
+<input type="text" id="entry" />
+<hr />
+<textarea id="log" rows="20" cols="120"></textarea>
+</div>
+
+<script type="text/JavaScript">
+$("entry").onkeyup = onKeyPress;
+</script>
+
+</body>
+</html>
