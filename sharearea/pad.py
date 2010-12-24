@@ -15,6 +15,12 @@ class PadWebSocket(tornado.websocket.WebSocketHandler):
   instances = []
   message = ''
 
+  # Types of Messages
+  # * update - clobber the entire contents of the channel with "body"
+  # * insert - insert body at pos
+  # * delete - remove from start to end
+  # * replace - remove from start to end and insert body in its stead
+
   def open(self, *args, **kwargs):
     PadWebSocket.instances.append(self)
     self.write_message(json.dumps({
@@ -32,12 +38,18 @@ class PadWebSocket(tornado.websocket.WebSocketHandler):
     if recv['action'] == 'insert':
       PadWebSocket.message = \
         PadWebSocket.message[:recv['pos']] + \
-        chr(recv['charCode']) + \
+        recv['body'] + \
         PadWebSocket.message[recv['pos']:]
 
     elif recv['action'] == 'delete':
       PadWebSocket.message = \
         PadWebSocket.message[:recv['start']] + \
+        PadWebSocket.message[recv['end']:]
+
+    elif recv['action'] == 'replace':
+      PadWebSocket.message = \
+        PadWebSocket.message[:recv['start']] + \
+        recv['body'] + \
         PadWebSocket.message[recv['end']:]
 
     # Re-broadcast to the others

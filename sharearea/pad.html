@@ -13,7 +13,7 @@ ws.onmessage = function(event) {
   switch(obj.action) {
   case 'insert':
     channel.value = channel.value.substr(0, obj.pos) +
-                    String.fromCharCode(obj.charCode) +
+                    obj.body +
                     channel.value.substr(obj.pos);
     break;
   case 'update':
@@ -28,34 +28,47 @@ ws.onmessage = function(event) {
 
 function onKeyPress(event) {
   var channel = $("channel");
-  var msg = JSON.stringify({action: 'insert',
-                            charCode: event.charCode,
-                            pos: channel.selectionEnd});
-  ws.send(msg);
-}
-
-function onKeyDown(event) {
-  var channel = $("channel");
-  if (channel.selectionStart != channel.selectionEnd) {
-    var msg = JSON.stringify({action: 'delete',
+  if (channel.selectionStart == channel.selectionEnd) {
+    var msg = JSON.stringify({action: 'insert',
+                              body: String.fromCharCode(event.charCode),
+                              pos: channel.selectionEnd});
+    ws.send(msg);
+  } else {
+    var msg = JSON.stringify({action: 'replace',
+                              body: String.fromCharCode(event.charCode),
                               start: channel.selectionStart,
                               end: channel.selectionEnd});
     ws.send(msg);
+  }
+}
 
-    // We need to call setSelectionRange AFTER doing the delete, so that the 
-    // sent insert appears in the right spot 
-    //channel.setSelectionRange(channel.selectionStart, channel.selectionStart);
-  } else {
-    if (event.keyCode == 8) {
+var DeleteCodes = {8: true,   // bksp
+                   46: true}; // del
+
+function onKeyDown(event) {
+  var channel = $("channel");
+  if (DELETE_CODES[event.keyCode]) {
+    if (channel.selectionStart != channel.selectionEnd) {
       var msg = JSON.stringify({action: 'delete',
-                                start: channel.selectionEnd - 1,
+                                start: channel.selectionStart,
                                 end: channel.selectionEnd});
       ws.send(msg);
-    } else if (event.keyCode == 46) {
-      var msg = JSON.stringify({action: 'delete',
-                                start: channel.selectionEnd,
-                                end: channel.selectionEnd + 1});
-      ws.send(msg);
+
+      // We need to call setSelectionRange AFTER doing the delete, so that the 
+      // sent insert appears in the right spot 
+      //channel.setSelectionRange(channel.selectionStart, channel.selectionStart);
+    } else {
+      if (event.keyCode == 8) {
+        var msg = JSON.stringify({action: 'delete',
+                                  start: channel.selectionEnd - 1,
+                                  end: channel.selectionEnd});
+        ws.send(msg);
+      } else if (event.keyCode == 46) {
+        var msg = JSON.stringify({action: 'delete',
+                                  start: channel.selectionEnd,
+                                  end: channel.selectionEnd + 1});
+        ws.send(msg);
+      }
     }
   }
 }
