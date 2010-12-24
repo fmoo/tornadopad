@@ -23,6 +23,11 @@ ws.onmessage = function(event) {
     channel.value = channel.value.substr(0, obj.start) +
                     channel.value.substr(obj.end);
     break;
+  case 'replace':
+    channel.value = channel.value.substr(0, obj.start) +
+                    obj.body +
+                    channel.value.substr(obj.end);
+    break;
   }
 };
 
