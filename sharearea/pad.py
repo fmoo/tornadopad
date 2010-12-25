@@ -31,26 +31,35 @@ class PadWebSocket(tornado.websocket.WebSocketHandler):
   def on_close(self):
     PadWebSocket.instances.remove(self)
 
+  def on_insert_message(msg):
+    PadWebSocket.message = \
+      PadWebSocket.message[:msg['pos']] + \
+      msg['body'] + \
+      PadWebSocket.message[msg['pos']:]
+
+  def on_delete_message(msg):
+    PadWebSocket.message = \
+      PadWebSocket.message[:msg['start']] + \
+      PadWebSocket.message[msg['end']:]
+
+  def on_replace_message(msg):
+      PadWebSocket.message = \
+        PadWebSocket.message[:msg['start']] + \
+        msg['body'] + \
+        PadWebSocket.message[msg['end']:]
+
+  __ACTIONMAP__ = {
+    'insert': on_insert_message,
+    'delete': on_delete_message,
+    'replace': on_replace_message,
+  }
+
   def on_message(self, message):
-
     # Update the global state
-    recv = json.loads(message)    
-    if recv['action'] == 'insert':
-      PadWebSocket.message = \
-        PadWebSocket.message[:recv['pos']] + \
-        recv['body'] + \
-        PadWebSocket.message[recv['pos']:]
-
-    elif recv['action'] == 'delete':
-      PadWebSocket.message = \
-        PadWebSocket.message[:recv['start']] + \
-        PadWebSocket.message[recv['end']:]
-
-    elif recv['action'] == 'replace':
-      PadWebSocket.message = \
-        PadWebSocket.message[:recv['start']] + \
-        recv['body'] + \
-        PadWebSocket.message[recv['end']:]
+    recv = json.loads(message)
+    action = self.__ACTIONMAP__.get(recv.get('action'))
+    if action:
+      action(recv)
 
     # Re-broadcast to the others
     for instance in PadWebSocket.instances:
